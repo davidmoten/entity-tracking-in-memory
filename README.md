@@ -1,2 +1,2 @@
 # entity-tracking-in-memory
-Matches timestamped geospatial position reports to entities in an in-memory dataset and maintains identifier uniqueness
+Java library that matches timestamped geospatial position reports to entities in an in-memory dataset and maintains identifier uniqueness. Uses [Volatile Identifier Entity Matching](https://github.com/davidmoten/viem)(viem) as the core matching and resolution engine. This library could be used wrapped with an API to receive and resolve timestamped position reports, and respond to queries about the latest positions of entities and possibly tracks of entities if memory constraints allow.
