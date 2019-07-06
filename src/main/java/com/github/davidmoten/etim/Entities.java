@@ -14,8 +14,7 @@ import com.github.davidmoten.grumpy.core.Position;
 import com.github.davidmoten.viem.EntityState;
 import com.github.davidmoten.viem.System;
 
-public final class Entities
-        implements com.github.davidmoten.viem.System<IdentifierKey, String, Metadata> {
+public final class Entities implements System<IdentifierKey, String, Metadata> {
 
     private static final long MERGE_TIME_THRESHOLD_MS = TimeUnit.DAYS.toMillis(1);
     private static final long MIN_TIME_DIFF_FOR_SPEED_CHECK = TimeUnit.MINUTES.toMillis(1);
