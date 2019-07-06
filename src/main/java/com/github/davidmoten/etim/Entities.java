@@ -6,14 +6,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.github.davidmoten.grumpy.core.Position;
 import com.github.davidmoten.viem.EntityState;
 import com.github.davidmoten.viem.System;
 
 public final class Entities
         implements com.github.davidmoten.viem.System<IdentifierKey, String, Metadata> {
+
+    private static final long MERGE_TIME_THRESHOLD_MS = TimeUnit.DAYS.toMillis(1);
+    private static final long MIN_TIME_DIFF_FOR_SPEED_CHECK = TimeUnit.MINUTES.toMillis(1);
+    private static final double MAX_DISTANCE_DIFF_KM = 30;
 
     private final Set<EntityState<IdentifierKey, String, Metadata>> entities = new HashSet<>();
     private final Map<KeyValue, EntityState<IdentifierKey, String, Metadata>> map = new HashMap<>();
@@ -52,7 +58,23 @@ public final class Entities
 
     @Override
     public boolean mergeable(Metadata a, Metadata b) {
-        return true;
+        if (a.type() != b.type()) {
+            throw new IllegalArgumentException("cannot merge different entity types");
+        }
+        long timeDiffMs = Math.abs(a.time() - b.time());
+        boolean expired = timeDiffMs > MERGE_TIME_THRESHOLD_MS;
+        if (expired) {
+            return true;
+        }
+        Position apos = Position.create(a.lat(), a.lon());
+        Position bpos = Position.create(b.lat(), b.lon());
+        double distanceKm = apos.getDistanceToKm(bpos);
+        if (timeDiffMs < MIN_TIME_DIFF_FOR_SPEED_CHECK && distanceKm < MAX_DISTANCE_DIFF_KM) {
+            return true;
+        } else {
+            double speedKmPerHour = distanceKm / timeDiffMs * 1000 * 60 * 60;
+            return speedKmPerHour <= a.type().maxSpeedKmPerHour();
+        }
     }
 
     @Override
