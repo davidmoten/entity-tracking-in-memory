@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -16,19 +15,17 @@ import com.github.davidmoten.viem.System;
 
 public final class Entities implements System<String, String, Metadata> {
 
-    private static final long MERGE_TIME_THRESHOLD_MS = TimeUnit.DAYS.toMillis(1);
-    private static final long MIN_TIME_DIFF_FOR_SPEED_CHECK = TimeUnit.MINUTES.toMillis(1);
-    private static final double MAX_DISTANCE_DIFF_KM = 30;
-
     private final Set<EntityState<String, String, Metadata>> entities = new HashSet<>();
     private final Map<KeyValue, EntityState<String, String, Metadata>> map = new HashMap<>();
     private final Map<String, IdentifierType> identifierTypes;
     private final Map<String, EntityType> entityTypes;
+    private final Options options;
 
     public Entities(Map<String, IdentifierType> identifierTypes,
-            Map<String, EntityType> entityTypes) {
+            Map<String, EntityType> entityTypes, Options options) {
         this.identifierTypes = identifierTypes;
         this.entityTypes = entityTypes;
+        this.options = options;
     }
 
     @Override
@@ -68,14 +65,15 @@ public final class Entities implements System<String, String, Metadata> {
             throw new IllegalArgumentException("cannot merge different entity types");
         }
         long timeDiffMs = Math.abs(a.time() - b.time());
-        boolean expired = timeDiffMs > MERGE_TIME_THRESHOLD_MS;
+        boolean expired = timeDiffMs > options.mergeTimeThresholdMs();
         if (expired) {
             return true;
         }
         Position apos = Position.create(a.lat(), a.lon());
         Position bpos = Position.create(b.lat(), b.lon());
         double distanceKm = apos.getDistanceToKm(bpos);
-        if (timeDiffMs < MIN_TIME_DIFF_FOR_SPEED_CHECK && distanceKm < MAX_DISTANCE_DIFF_KM) {
+        if (timeDiffMs < options.maxTimeDiffWithoutSpeedCheckMs()
+                && distanceKm < options.maxDistanceDiffKmWithoutSpeedCheckKm()) {
             return true;
         } else {
             double speedKmPerHour = distanceKm / timeDiffMs * 1000 * 60 * 60;
