@@ -2,10 +2,10 @@ package com.github.davidmoten.etim;
 
 final class KeyValue {
 
-    final IdentifierKey key;
+    final String key;
     final String value;
 
-    KeyValue(IdentifierKey key, String value) {
+    KeyValue(String key, String value) {
         this.key = key;
         this.value = value;
     }

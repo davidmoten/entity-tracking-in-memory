@@ -14,29 +14,36 @@ import com.github.davidmoten.grumpy.core.Position;
 import com.github.davidmoten.viem.EntityState;
 import com.github.davidmoten.viem.System;
 
-public final class Entities implements System<IdentifierKey, String, Metadata> {
+public final class Entities implements System<String, String, Metadata> {
 
     private static final long MERGE_TIME_THRESHOLD_MS = TimeUnit.DAYS.toMillis(1);
     private static final long MIN_TIME_DIFF_FOR_SPEED_CHECK = TimeUnit.MINUTES.toMillis(1);
     private static final double MAX_DISTANCE_DIFF_KM = 30;
 
-    private final Set<EntityState<IdentifierKey, String, Metadata>> entities = new HashSet<>();
-    private final Map<KeyValue, EntityState<IdentifierKey, String, Metadata>> map = new HashMap<>();
+    private final Set<EntityState<String, String, Metadata>> entities = new HashSet<>();
+    private final Map<KeyValue, EntityState<String, String, Metadata>> map = new HashMap<>();
+    private final Map<String, IdentifierType> identifierTypes;
+    private final Map<String, EntityType> entityTypes;
+
+    public Entities(Map<String, IdentifierType> identifierTypes,
+            Map<String, EntityType> entityTypes) {
+        this.identifierTypes = identifierTypes;
+        this.entityTypes = entityTypes;
+    }
 
     @Override
-    public Iterable<EntityState<IdentifierKey, String, Metadata>> entityStates() {
+    public Iterable<EntityState<String, String, Metadata>> entityStates() {
         return entities;
     }
 
     @Override
-    public Set<EntityState<IdentifierKey, String, Metadata>> matches(
-            Map<IdentifierKey, String> identifiers) {
+    public Set<EntityState<String, String, Metadata>> matches(Map<String, String> identifiers) {
         return identifiers //
                 .entrySet() //
                 .stream() //
                 .flatMap(entry -> {
                     KeyValue kv = new KeyValue(entry.getKey(), entry.getValue());
-                    EntityState<IdentifierKey, String, Metadata> e = map.get(kv);
+                    EntityState<String, String, Metadata> e = map.get(kv);
                     if (e == null) {
                         return Stream.empty();
                     } else {
@@ -46,8 +53,8 @@ public final class Entities implements System<IdentifierKey, String, Metadata> {
     }
 
     @Override
-    public boolean keyGreaterThan(IdentifierKey a, IdentifierKey b) {
-        return a.priority() > b.priority();
+    public boolean keyGreaterThan(String a, String b) {
+        return identifierTypes.get(a).priority > identifierTypes.get(b).priority;
     }
 
     @Override
@@ -72,7 +79,7 @@ public final class Entities implements System<IdentifierKey, String, Metadata> {
             return true;
         } else {
             double speedKmPerHour = distanceKm / timeDiffMs * 1000 * 60 * 60;
-            return speedKmPerHour <= a.type().maxSpeedKmPerHour();
+            return speedKmPerHour <= entityTypes.get(a.type()).maxSpeedKmPerHour;
         }
     }
 
@@ -88,18 +95,18 @@ public final class Entities implements System<IdentifierKey, String, Metadata> {
     }
 
     @Override
-    public System<IdentifierKey, String, Metadata> update(
-            List<EntityState<IdentifierKey, String, Metadata>> matches,
-            Set<EntityState<IdentifierKey, String, Metadata>> newEntityStates) {
+    public System<String, String, Metadata> update(
+            List<EntityState<String, String, Metadata>> matches,
+            Set<EntityState<String, String, Metadata>> newEntityStates) {
         entities.removeAll(matches);
-        for (EntityState<IdentifierKey, String, Metadata> e : entities) {
-            for (Entry<IdentifierKey, String> entry : e.identifiers().entrySet()) {
+        for (EntityState<String, String, Metadata> e : entities) {
+            for (Entry<String, String> entry : e.identifiers().entrySet()) {
                 map.remove(new KeyValue(entry.getKey(), entry.getValue()));
             }
         }
         entities.addAll(newEntityStates);
-        for (EntityState<IdentifierKey, String, Metadata> e : newEntityStates) {
-            for (Entry<IdentifierKey, String> entry : e.identifiers().entrySet()) {
+        for (EntityState<String, String, Metadata> e : newEntityStates) {
+            for (Entry<String, String> entry : e.identifiers().entrySet()) {
                 map.put(new KeyValue(entry.getKey(), entry.getValue()), e);
             }
         }

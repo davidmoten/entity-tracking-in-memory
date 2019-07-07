@@ -4,13 +4,13 @@ import java.util.Map;
 
 public final class Metadata {
 
-    private final EntityType type;
+    private final String type;
     private final double lat;
     private final double lon;
     private final long time;
     private final Map<String, String> properties;
 
-    public Metadata(EntityType type, double lat, double lon, long time,
+    public Metadata(String type, double lat, double lon, long time,
             Map<String, String> properties) {
         this.type = type;
         this.lat = lat;
@@ -19,7 +19,7 @@ public final class Metadata {
         this.properties = properties;
     }
 
-    public EntityType type() {
+    public String type() {
         return type;
     }
 
