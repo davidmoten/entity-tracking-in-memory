@@ -119,41 +119,57 @@ public final class Entities implements System<String, String, Metadata> {
                 map.put(new KeyValue(entry.getKey(), entry.getValue()), e);
             }
         }
-        while (!orderedByTime.isEmpty()) {
-            long t = orderedByTime.firstKey();
-            if (t < options.clock().now() - options.maxAgeMs()) {
-                List<EntityState<String, String, Metadata>> list = orderedByTime.get(t);
-                orderedByTime.remove(t);
-                // remove from entities and tree2;
-                entities.removeAll(list);
-                for (EntityState<String, String, Metadata> e : list) {
-                    tree2 = tree2.delete(e, e.metadata().point());
-                }
-            }
-        }
-        tree = tree2;
+        tree = expireEntries(tree2);
         return this;
     }
 
-    private void addToOrderedByTime(EntityState<String, String, Metadata> e) {
-        List<EntityState<String, String, Metadata>> list = orderedByTime.get(e.metadata().time());
-        if (list == null) {
-            list = new ArrayList<>();
-            orderedByTime.put(e.metadata().time(), list);
+    private RTree<EntityState<String, String, Metadata>, Point> expireEntries(
+            RTree<EntityState<String, String, Metadata>, Point> tree2) {
+        if (options.maxAgeMs() > 0) {
+            while (!orderedByTime.isEmpty()) {
+                long t = orderedByTime.firstKey();
+                if (t < options.clock().now() - options.maxAgeMs()) {
+                    List<EntityState<String, String, Metadata>> list = orderedByTime.get(t);
+                    orderedByTime.remove(t);
+                    // remove from entities and tree2;
+                    entities.removeAll(list);
+                    for (EntityState<String, String, Metadata> e : list) {
+                        tree2 = tree2.delete(e, e.metadata().point());
+                    }
+                }
+            }
+            return tree2;
+        } else {
+            return tree2;
         }
-        list.add(e);
+    }
+
+    private void addToOrderedByTime(EntityState<String, String, Metadata> e) {
+        if (options.maxAgeMs() > 0) {
+            List<EntityState<String, String, Metadata>> list = orderedByTime
+                    .get(e.metadata().time());
+            if (list == null) {
+                list = new ArrayList<>();
+                orderedByTime.put(e.metadata().time(), list);
+            }
+            list.add(e);
+        }
     }
 
     private void removeFromOrderedByTime(EntityState<String, String, Metadata> e) {
-        List<EntityState<String, String, Metadata>> list = orderedByTime.get(e.metadata().time());
-        if (list != null) {
-            list.remove(e);
-            if (list.isEmpty()) {
-                orderedByTime.remove(e.metadata().time());
+        if (options.maxAgeMs() > 0) {
+            List<EntityState<String, String, Metadata>> list = orderedByTime
+                    .get(e.metadata().time());
+            if (list != null) {
+                list.remove(e);
+                if (list.isEmpty()) {
+                    orderedByTime.remove(e.metadata().time());
+                }
             }
         }
     }
 
+    // thread-safe
     public RTree<EntityState<String, String, Metadata>, Point> rtree() {
         return tree;
     }
