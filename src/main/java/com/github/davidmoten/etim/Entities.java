@@ -21,13 +21,14 @@ public final class Entities implements System<String, String, Metadata> {
 
     private final Set<EntityState<String, String, Metadata>> entities = new HashSet<>();
     private final Map<KeyValue, EntityState<String, String, Metadata>> map = new HashMap<>();
-    private volatile RTree<EntityState<String, String, Metadata>, Point> tree = RTree
-            .maxChildren(16).star().create();
     private final Options options;
     private final TreeMap<Long, List<EntityState<String, String, Metadata>>> orderedByTime = new TreeMap<>();
 
+    private volatile RTree<EntityState<String, String, Metadata>, Point> tree;
+
     public Entities(Options options) {
         this.options = options;
+        this.tree = RTree.maxChildren(options.rTreeMaxChildren()).star().create();
     }
 
     @Override
@@ -99,8 +100,7 @@ public final class Entities implements System<String, String, Metadata> {
     }
 
     @Override
-    public System<String, String, Metadata> update(
-            List<EntityState<String, String, Metadata>> matches,
+    public System<String, String, Metadata> update(List<EntityState<String, String, Metadata>> matches,
             Set<EntityState<String, String, Metadata>> newEntityStates) {
         RTree<EntityState<String, String, Metadata>, Point> tree2 = tree;
         entities.removeAll(matches);
@@ -119,35 +119,38 @@ public final class Entities implements System<String, String, Metadata> {
                 map.put(new KeyValue(entry.getKey(), entry.getValue()), e);
             }
         }
-        tree = expireEntries(tree2);
+        tree = evictExpired(tree2);
         return this;
     }
 
-    private RTree<EntityState<String, String, Metadata>, Point> expireEntries(
-            RTree<EntityState<String, String, Metadata>, Point> tree2) {
+    private RTree<EntityState<String, String, Metadata>, Point> evictExpired(
+            RTree<EntityState<String, String, Metadata>, Point> tr) {
         if (options.maxAgeMs() > 0) {
             while (!orderedByTime.isEmpty()) {
                 long t = orderedByTime.firstKey();
                 if (t < options.clock().now() - options.maxAgeMs()) {
                     List<EntityState<String, String, Metadata>> list = orderedByTime.get(t);
                     orderedByTime.remove(t);
-                    // remove from entities and tree2;
+                    // remove from entities, map and tree2;
                     entities.removeAll(list);
                     for (EntityState<String, String, Metadata> e : list) {
-                        tree2 = tree2.delete(e, e.metadata().point());
+                        tr = tr.delete(e, e.metadata().point());
+                        for (Entry<String, String> entry : e.identifiers().entrySet()) {
+                            map.remove(new KeyValue(entry.getKey(), entry.getValue()));
+                        }
                     }
+                } else {
+                    // oldest is not old so don't evict any more
+                    return tr;
                 }
             }
-            return tree2;
-        } else {
-            return tree2;
         }
+        return tr;
     }
 
     private void addToOrderedByTime(EntityState<String, String, Metadata> e) {
         if (options.maxAgeMs() > 0) {
-            List<EntityState<String, String, Metadata>> list = orderedByTime
-                    .get(e.metadata().time());
+            List<EntityState<String, String, Metadata>> list = orderedByTime.get(e.metadata().time());
             if (list == null) {
                 list = new ArrayList<>();
                 orderedByTime.put(e.metadata().time(), list);
@@ -158,8 +161,7 @@ public final class Entities implements System<String, String, Metadata> {
 
     private void removeFromOrderedByTime(EntityState<String, String, Metadata> e) {
         if (options.maxAgeMs() > 0) {
-            List<EntityState<String, String, Metadata>> list = orderedByTime
-                    .get(e.metadata().time());
+            List<EntityState<String, String, Metadata>> list = orderedByTime.get(e.metadata().time());
             if (list != null) {
                 list.remove(e);
                 if (list.isEmpty()) {
