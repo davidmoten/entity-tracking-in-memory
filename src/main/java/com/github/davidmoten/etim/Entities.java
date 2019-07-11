@@ -84,10 +84,13 @@ public final class Entities implements System<String, String, Metadata> {
     @Override
     public Metadata merge(Metadata a, Metadata b) {
         Metadata max = a.time() > b.time() ? a : b;
-        Metadata min = a.time() > b.time() ? b : a;
-        Map<String, String> props = new HashMap<>(min.properties());
-        for (Entry<String, String> entry : max.properties().entrySet()) {
-            props.put(entry.getKey(), entry.getValue());
+        Map<String, TimestampedString> props = new HashMap<>(a.properties());
+        for (Entry<String, TimestampedString> entry : b.properties().entrySet()) {
+            TimestampedString ts = a.properties().get(entry.getKey());
+            if (ts == null || entry.getValue().time() > a.time()) {
+                // favour the b value
+                props.put(entry.getKey(), entry.getValue());
+            }
         }
         return new Metadata(max.type(), max.lat(), max.lon(), max.time(), props);
     }

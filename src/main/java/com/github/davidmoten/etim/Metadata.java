@@ -8,17 +8,17 @@ public final class Metadata {
     private final double lat;
     private final double lon;
     private final long time;
-    private final Map<String, String> properties;
+    private final Map<String, TimestampedString> properties;
 
     public Metadata(String type, double lat, double lon, long time,
-            Map<String, String> properties) {
+            Map<String, TimestampedString> properties) {
         this.type = type;
         this.lat = lat;
         this.lon = lon;
         this.time = time;
         this.properties = properties;
     }
-
+    
     public String type() {
         return type;
     }
@@ -35,7 +35,7 @@ public final class Metadata {
         return time;
     }
 
-    public Map<String, String> properties() {
+    public Map<String, TimestampedString> properties() {
         return properties;
     }
 
