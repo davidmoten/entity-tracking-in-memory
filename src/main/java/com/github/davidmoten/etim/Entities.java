@@ -1,17 +1,18 @@
 package com.github.davidmoten.etim;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.github.davidmoten.grumpy.core.Position;
 import com.github.davidmoten.rtree2.RTree;
-import com.github.davidmoten.rtree2.geometry.Geometries;
 import com.github.davidmoten.rtree2.geometry.Point;
 import com.github.davidmoten.viem.EntityState;
 import com.github.davidmoten.viem.System;
@@ -23,6 +24,7 @@ public final class Entities implements System<String, String, Metadata> {
     private volatile RTree<EntityState<String, String, Metadata>, Point> tree = RTree
             .maxChildren(16).star().create();
     private final Options options;
+    private final TreeMap<Long, List<EntityState<String, String, Metadata>>> orderedByTime = new TreeMap<>();
 
     public Entities(Options options) {
         this.options = options;
@@ -103,20 +105,53 @@ public final class Entities implements System<String, String, Metadata> {
         RTree<EntityState<String, String, Metadata>, Point> tree2 = tree;
         entities.removeAll(matches);
         for (EntityState<String, String, Metadata> e : entities) {
-            tree2 = tree2.delete(e, Geometries.point(e.metadata().lat(), e.metadata().lon()));
+            tree2 = tree2.delete(e, e.metadata().point());
+            removeFromOrderedByTime(e);
             for (Entry<String, String> entry : e.identifiers().entrySet()) {
                 map.remove(new KeyValue(entry.getKey(), entry.getValue()));
             }
         }
         entities.addAll(newEntityStates);
         for (EntityState<String, String, Metadata> e : newEntityStates) {
-            tree2 = tree2.add(e, Geometries.point(e.metadata().lat(), e.metadata().lon()));
+            tree2 = tree2.add(e, e.metadata().point());
+            addToOrderedByTime(e);
             for (Entry<String, String> entry : e.identifiers().entrySet()) {
                 map.put(new KeyValue(entry.getKey(), entry.getValue()), e);
             }
         }
+        while (!orderedByTime.isEmpty()) {
+            long t = orderedByTime.firstKey();
+            if (t < options.clock().now() - options.maxAgeMs()) {
+                List<EntityState<String, String, Metadata>> list = orderedByTime.get(t);
+                orderedByTime.remove(t);
+                // remove from entities and tree2;
+                entities.removeAll(list);
+                for (EntityState<String, String, Metadata> e : list) {
+                    tree2 = tree2.delete(e, e.metadata().point());
+                }
+            }
+        }
         tree = tree2;
         return this;
+    }
+
+    private void addToOrderedByTime(EntityState<String, String, Metadata> e) {
+        List<EntityState<String, String, Metadata>> list = orderedByTime.get(e.metadata().time());
+        if (list == null) {
+            list = new ArrayList<>();
+            orderedByTime.put(e.metadata().time(), list);
+        }
+        list.add(e);
+    }
+
+    private void removeFromOrderedByTime(EntityState<String, String, Metadata> e) {
+        List<EntityState<String, String, Metadata>> list = orderedByTime.get(e.metadata().time());
+        if (list != null) {
+            list.remove(e);
+            if (list.isEmpty()) {
+                orderedByTime.remove(e.metadata().time());
+            }
+        }
     }
 
     public RTree<EntityState<String, String, Metadata>, Point> rtree() {
