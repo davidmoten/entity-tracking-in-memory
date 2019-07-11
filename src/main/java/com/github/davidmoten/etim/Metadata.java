@@ -1,5 +1,6 @@
 package com.github.davidmoten.etim;
 
+import java.util.Collections;
 import java.util.Map;
 
 public final class Metadata {
@@ -16,9 +17,9 @@ public final class Metadata {
         this.lat = lat;
         this.lon = lon;
         this.time = time;
-        this.properties = properties;
+        this.properties = Collections.unmodifiableMap(properties);
     }
-    
+
     public String type() {
         return entityType;
     }

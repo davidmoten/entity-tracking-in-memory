@@ -10,6 +10,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.github.davidmoten.grumpy.core.Position;
+import com.github.davidmoten.rtree2.RTree;
+import com.github.davidmoten.rtree2.geometry.Geometries;
+import com.github.davidmoten.rtree2.geometry.Point;
 import com.github.davidmoten.viem.EntityState;
 import com.github.davidmoten.viem.System;
 
@@ -17,6 +20,8 @@ public final class Entities implements System<String, String, Metadata> {
 
     private final Set<EntityState<String, String, Metadata>> entities = new HashSet<>();
     private final Map<KeyValue, EntityState<String, String, Metadata>> map = new HashMap<>();
+    private volatile RTree<EntityState<String, String, Metadata>, Point> tree = RTree
+            .maxChildren(16).star().create();
     private final Options options;
 
     public Entities(Options options) {
@@ -95,19 +100,27 @@ public final class Entities implements System<String, String, Metadata> {
     public System<String, String, Metadata> update(
             List<EntityState<String, String, Metadata>> matches,
             Set<EntityState<String, String, Metadata>> newEntityStates) {
+        RTree<EntityState<String, String, Metadata>, Point> tree2 = tree;
         entities.removeAll(matches);
         for (EntityState<String, String, Metadata> e : entities) {
+            tree2 = tree2.delete(e, Geometries.point(e.metadata().lat(), e.metadata().lon()));
             for (Entry<String, String> entry : e.identifiers().entrySet()) {
                 map.remove(new KeyValue(entry.getKey(), entry.getValue()));
             }
         }
         entities.addAll(newEntityStates);
         for (EntityState<String, String, Metadata> e : newEntityStates) {
+            tree2 = tree2.add(e, Geometries.point(e.metadata().lat(), e.metadata().lon()));
             for (Entry<String, String> entry : e.identifiers().entrySet()) {
                 map.put(new KeyValue(entry.getKey(), entry.getValue()), e);
             }
         }
+        tree = tree2;
         return this;
+    }
+
+    public RTree<EntityState<String, String, Metadata>, Point> rtree() {
+        return tree;
     }
 
 }
