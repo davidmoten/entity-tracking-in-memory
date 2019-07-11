@@ -1,20 +1,20 @@
 package com.github.davidmoten.etim;
 
-public class Options {
+import java.util.Map;
 
-    private final long mergeTimeThresholdMs;
+public final class Options {
+
     private final long maxTimeDiffWithoutSpeedCheckMs;
     private final double maxDistanceDiffWithoutSpeedCheckKm;
+    private final Map<String, EntityType> entityTypes;
+    private final Map<String, IdentifierType> identifierTypes;
 
-    public Options(long mergeTimeThresholdMs, long maxTimeDiffWithoutSpeedCheck,
-            double maxDistanceDiffWithoutSpeedCheckKm) {
-        this.mergeTimeThresholdMs = mergeTimeThresholdMs;
+    public Options(long maxTimeDiffWithoutSpeedCheck, double maxDistanceDiffWithoutSpeedCheckKm,
+            Map<String, EntityType> entityTypes, Map<String, IdentifierType> identifierTypes) {
         this.maxTimeDiffWithoutSpeedCheckMs = maxTimeDiffWithoutSpeedCheck;
         this.maxDistanceDiffWithoutSpeedCheckKm = maxDistanceDiffWithoutSpeedCheckKm;
-    }
-
-    public long mergeTimeThresholdMs() {
-        return mergeTimeThresholdMs;
+        this.entityTypes = entityTypes;
+        this.identifierTypes = identifierTypes;
     }
 
     public long maxTimeDiffWithoutSpeedCheckMs() {
@@ -23,6 +23,14 @@ public class Options {
 
     public double maxDistanceDiffKmWithoutSpeedCheckKm() {
         return maxDistanceDiffWithoutSpeedCheckKm;
+    }
+
+    public EntityType getEntityType(String name) {
+        return entityTypes.get(name);
+    }
+
+    public IdentifierType getIdentifierType(String name) {
+        return identifierTypes.get(name);
     }
 
 }

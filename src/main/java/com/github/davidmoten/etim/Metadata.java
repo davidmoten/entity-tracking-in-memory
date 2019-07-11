@@ -4,7 +4,7 @@ import java.util.Map;
 
 public final class Metadata {
 
-    private final String type;
+    private final String entityType;
     private final double lat;
     private final double lon;
     private final long time;
@@ -12,7 +12,7 @@ public final class Metadata {
 
     public Metadata(String type, double lat, double lon, long time,
             Map<String, TimestampedString> properties) {
-        this.type = type;
+        this.entityType = type;
         this.lat = lat;
         this.lon = lon;
         this.time = time;
@@ -20,7 +20,7 @@ public final class Metadata {
     }
     
     public String type() {
-        return type;
+        return entityType;
     }
 
     public double lat() {

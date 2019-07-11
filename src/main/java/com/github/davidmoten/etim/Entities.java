@@ -17,14 +17,9 @@ public final class Entities implements System<String, String, Metadata> {
 
     private final Set<EntityState<String, String, Metadata>> entities = new HashSet<>();
     private final Map<KeyValue, EntityState<String, String, Metadata>> map = new HashMap<>();
-    private final Map<String, IdentifierType> identifierTypes;
-    private final Map<String, EntityType> entityTypes;
     private final Options options;
 
-    public Entities(Map<String, IdentifierType> identifierTypes,
-            Map<String, EntityType> entityTypes, Options options) {
-        this.identifierTypes = identifierTypes;
-        this.entityTypes = entityTypes;
+    public Entities(Options options) {
         this.options = options;
     }
 
@@ -51,7 +46,7 @@ public final class Entities implements System<String, String, Metadata> {
 
     @Override
     public boolean keyGreaterThan(String a, String b) {
-        return identifierTypes.get(a).priority > identifierTypes.get(b).priority;
+        return options.getIdentifierType(a).priority() > options.getIdentifierType(b).priority();
     }
 
     @Override
@@ -65,8 +60,9 @@ public final class Entities implements System<String, String, Metadata> {
             throw new IllegalArgumentException("cannot merge different entity types");
         }
         long timeDiffMs = Math.abs(a.time() - b.time());
-        boolean expired = timeDiffMs > options.mergeTimeThresholdMs();
-        if (expired) {
+        EntityType entityType = options.getEntityType(a.type());
+        boolean autoMerge = timeDiffMs >= entityType.autoMergeThresholdMs();
+        if (autoMerge) {
             return true;
         }
         Position apos = Position.create(a.lat(), a.lon());
@@ -77,7 +73,7 @@ public final class Entities implements System<String, String, Metadata> {
             return true;
         } else {
             double speedKmPerHour = distanceKm / timeDiffMs * 1000 * 60 * 60;
-            return speedKmPerHour <= entityTypes.get(a.type()).maxSpeedKmPerHour;
+            return speedKmPerHour <= entityType.maxSpeedKmPerHour();
         }
     }
 
