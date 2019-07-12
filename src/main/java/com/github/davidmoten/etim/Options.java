@@ -11,13 +11,15 @@ public final class Options {
     private final long maxAgeMs;
     private final Clock clock;
     private final int rTreeMaxChildren;
+    private final int maxEntities;
 
     public Options(long maxTimeDiffWithoutSpeedCheck, double maxDistanceDiffWithoutSpeedCheckKm, long maxAgeMs,
-            int rTreeMaxChildren, Map<String, EntityType> entityTypes, Map<String, IdentifierType> identifierTypes,
-            Clock clock) {
+            int rTreeMaxChildren, int maxEntities, Map<String, EntityType> entityTypes,
+            Map<String, IdentifierType> identifierTypes, Clock clock) {
         this.maxTimeDiffWithoutSpeedCheckMs = maxTimeDiffWithoutSpeedCheck;
         this.maxDistanceDiffWithoutSpeedCheckKm = maxDistanceDiffWithoutSpeedCheckKm;
         this.rTreeMaxChildren = rTreeMaxChildren;
+        this.maxEntities = maxEntities;
         this.entityTypes = entityTypes;
         this.identifierTypes = identifierTypes;
         this.maxAgeMs = maxAgeMs;
@@ -50,6 +52,10 @@ public final class Options {
 
     public int rTreeMaxChildren() {
         return rTreeMaxChildren;
+    }
+
+    public int maxEntities() {
+        return maxEntities;
     }
 
 }

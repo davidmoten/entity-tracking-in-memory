@@ -119,7 +119,8 @@ public final class Entities implements System<String, String, Metadata> {
                 map.put(new KeyValue(entry.getKey(), entry.getValue()), e);
             }
         }
-        tree = evictExpired(tree2);
+        tree = evictEx1dn16ht
+                pired(tree2);
         return this;
     }
 
@@ -129,20 +130,32 @@ public final class Entities implements System<String, String, Metadata> {
             while (!orderedByTime.isEmpty()) {
                 long t = orderedByTime.firstKey();
                 if (t < options.clock().now() - options.maxAgeMs()) {
-                    List<EntityState<String, String, Metadata>> list = orderedByTime.get(t);
-                    orderedByTime.remove(t);
-                    // remove from entities, map and tree2;
-                    entities.removeAll(list);
-                    for (EntityState<String, String, Metadata> e : list) {
-                        tr = tr.delete(e, e.metadata().point());
-                        for (Entry<String, String> entry : e.identifiers().entrySet()) {
-                            map.remove(new KeyValue(entry.getKey(), entry.getValue()));
-                        }
-                    }
+                    tr = evictTime(tr, t);
                 } else {
                     // oldest is not old so don't evict any more
                     return tr;
                 }
+            }
+        }
+        // evict due max size reached
+        while (options.maxEntities() > 0 && entities.size() > options.maxEntities()) {
+            // evict oldest (may evict more than strictly necessary)
+            // TODO just evict as many as necessary (though selection of which ones will be
+            // arbitrary)
+            tr = evictTime(tr, orderedByTime.firstKey());
+        }
+        return tr;
+    }
+
+    private RTree<EntityState<String, String, Metadata>, Point> evictTime(
+            RTree<EntityState<String, String, Metadata>, Point> tr, long t) {
+        List<EntityState<String, String, Metadata>> list = orderedByTime.remove(t);
+        // remove from entities, map and tree2;
+        entities.removeAll(list);
+        for (EntityState<String, String, Metadata> e : list) {
+            tr = tr.delete(e, e.metadata().point());
+            for (Entry<String, String> entry : e.identifiers().entrySet()) {
+                map.remove(new KeyValue(entry.getKey(), entry.getValue()));
             }
         }
         return tr;
