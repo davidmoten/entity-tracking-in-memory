@@ -119,8 +119,7 @@ public final class Entities implements System<String, String, Metadata> {
                 map.put(new KeyValue(entry.getKey(), entry.getValue()), e);
             }
         }
-        tree = evictEx1dn16ht
-                pired(tree2);
+        tree = evictExpired(tree2);
         return this;
     }
 
