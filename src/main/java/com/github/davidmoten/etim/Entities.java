@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -80,7 +81,8 @@ public final class Entities implements System<String, String, Metadata> {
                 && distanceKm < options.maxDistanceDiffKmWithoutSpeedCheckKm()) {
             return true;
         } else {
-            double speedKmPerHour = distanceKm / timeDiffMs * 1000 * 60 * 60;
+            double timeDiffHours = (double) timeDiffMs / TimeUnit.HOURS.toMillis(1);
+            double speedKmPerHour = distanceKm / timeDiffHours;
             return speedKmPerHour <= entityType.maxSpeedKmPerHour();
         }
     }
