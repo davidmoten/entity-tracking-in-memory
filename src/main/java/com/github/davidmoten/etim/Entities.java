@@ -16,9 +16,9 @@ import com.github.davidmoten.grumpy.core.Position;
 import com.github.davidmoten.rtree2.RTree;
 import com.github.davidmoten.rtree2.geometry.Point;
 import com.github.davidmoten.viem.EntityState;
-import com.github.davidmoten.viem.System;
+import com.github.davidmoten.viem.ViemSystem;
 
-public final class Entities implements System<String, String, Metadata> {
+public final class Entities implements ViemSystem<String, String, Metadata> {
 
     private final Set<EntityState<String, String, Metadata>> entities = new HashSet<>();
     private final Map<KeyValue, EntityState<String, String, Metadata>> map = new HashMap<>();
@@ -102,7 +102,7 @@ public final class Entities implements System<String, String, Metadata> {
     }
 
     @Override
-    public System<String, String, Metadata> update(List<EntityState<String, String, Metadata>> matches,
+    public ViemSystem<String, String, Metadata> update(List<EntityState<String, String, Metadata>> matches,
             Set<EntityState<String, String, Metadata>> newEntityStates) {
         RTree<EntityState<String, String, Metadata>, Point> tree2 = tree;
         entities.removeAll(matches);
